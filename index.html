@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0D1310">
+<title>Daily Ledger</title>
+<style>
+  :root{
+    --bg:#0D1310; --card:#152019; --cardhi:#1C2A21; --line:#243328;
+    --text:#E8F0E9; --dim:#8FA697; --mint:#8FE3BB; --red:#F0907F; --amber:#E8C878;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    max-width:460px;margin:0 auto;padding-bottom:120px}
+  .num{font-variant-numeric:tabular-nums}
+  header{padding:18px 18px 6px;font-size:21px;font-weight:700}
+  header small{font-size:11px;color:var(--dim);font-weight:400}
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tabs button{flex:1;padding:12px 0;background:none;border:none;color:var(--dim);
+    font-size:15px;font-weight:500;border-bottom:2.5px solid transparent;cursor:pointer}
+  .tabs button.on{color:var(--mint);font-weight:700;border-bottom-color:var(--mint)}
+  .datebar{margin:14px;background:var(--cardhi);border-radius:14px;display:flex;align-items:center;padding:12px 6px}
+  .datebar .nav{background:none;border:none;color:var(--mint);font-size:24px;padding:0 12px;cursor:pointer}
+  .bignum{font-size:40px;font-weight:300;color:var(--mint)}
+  .cards{display:flex;gap:10px;margin:0 14px}
+  .cardbox{flex:1;background:var(--card);border-radius:12px;padding:10px 14px}
+  .cardbox .lbl{font-size:12px;color:var(--dim)}
+  .cardbox .val{font-size:17px;font-weight:700}
+  .mint{color:var(--mint)} .red{color:var(--red)} .amber{color:var(--amber)} .dim{color:var(--dim)}
+  .list{margin:10px 14px 0}
+  .row{display:flex;align-items:center;gap:10px;padding:13px 2px;border-bottom:1px solid var(--line)}
+  .row .name{font-size:16.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .row .note{font-size:12.5px;color:var(--dim)}
+  .row .amt{font-size:16.5px;font-weight:600}
+  .row.paid .name,.row.paid .amt{text-decoration:line-through;text-decoration-thickness:2px;
+    text-decoration-color:var(--red);color:var(--dim)}
+  .chk{width:22px;height:22px;min-width:22px;border-radius:6px;border:1.5px solid var(--dim);
+    background:none;color:#0B1410;font-size:15px;line-height:1;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;font-weight:900}
+  .chk.done{background:var(--mint);border-color:var(--mint)}
+  .del{background:none;border:none;color:var(--dim);font-size:17px;cursor:pointer;padding:4px 0 4px 6px}
+  .empty{text-align:center;color:var(--dim);padding:44px 24px;font-size:14.5px;line-height:1.6}
+  .fab{position:fixed;bottom:26px;right:max(20px,calc(50% - 210px));width:60px;height:60px;
+    border-radius:18px;background:var(--mint);color:#0B1410;font-size:32px;border:none;
+    cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:5}
+  .sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+    align-items:flex-end;justify-content:center;z-index:10}
+  .sheetbg.open{display:flex}
+  .sheet{width:100%;max-width:460px;background:var(--cardhi);border-radius:22px 22px 0 0;padding:16px 18px 28px}
+  .handle{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+  .sheet h3{text-align:center;font-size:15px;margin:0 0 14px;font-weight:600}
+  .pills{display:flex;gap:10px;margin-bottom:14px}
+  .pills button{flex:1;padding:11px 0;border-radius:24px;border:1px solid var(--line);
+    background:none;color:var(--dim);font-size:14px;font-weight:600;cursor:pointer}
+  .pills button.inc.on{border-color:var(--mint);background:rgba(143,227,187,.13);color:var(--mint)}
+  .pills button.exp.on{border-color:var(--red);background:rgba(240,144,127,.13);color:var(--red)}
+  .frow{display:flex;gap:10px;margin-bottom:12px}
+  input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
+  .payline{display:flex;align-items:center;gap:10px;margin:4px 0 18px;font-size:14.5px;color:var(--dim)}
+  .payline input{width:19px;height:19px;accent-color:var(--mint)}
+  .savebtn{width:100%;padding:14px 0;border-radius:12px;border:none;background:var(--mint);
+    color:#0B1410;font-size:16.5px;font-weight:700;cursor:pointer}
+  .savebtn:disabled{background:var(--line);color:var(--dim)}
+  .duecard{margin:0 14px 12px;background:var(--card);border-radius:14px;padding:12px 14px}
+  .duehead{display:flex;justify-content:space-between;margin-bottom:4px;font-weight:600;font-size:16.5px}
+  .dueitem{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .settle{background:rgba(143,227,187,.13);border:1px solid var(--mint);color:var(--mint);
+    border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .mrow{display:flex;align-items:center;margin:0 14px;padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  .mrow .d{width:46px;font-size:20px;font-weight:300;color:var(--mint)}
+</style>
+</head>
+<body>
+
+<header>Daily Ledger <small id="saveState"></small></header>
+
+<div class="tabs">
+  <button id="tabDaily" class="on" onclick="setTab('daily')">Daily</button>
+  <button id="tabMonthly" onclick="setTab('monthly')">Monthly</button>
+  <button id="tabDues" onclick="setTab('dues')">Dues</button>
+</div>
+
+<div id="viewDaily"></div>
+<div id="viewMonthly" style="display:none"></div>
+<div id="viewDues" style="display:none"></div>
+
+<button class="fab" onclick="openForm()">+</button>
+
+<div class="sheetbg" id="sheetbg" onclick="if(event.target===this)closeForm()">
+  <div class="sheet">
+    <div class="handle"></div>
+    <h3 id="formTitle">New entry</h3>
+    <div class="pills">
+      <button id="pillInc" class="inc" onclick="setType('income')">Income (Credit)</button>
+      <button id="pillExp" class="exp on" onclick="setType('expense')">✓ Expense (Debit)</button>
+    </div>
+    <div class="frow">
+      <input type="text" id="fName" placeholder="Name (e.g. Kiran Materials)" style="flex:2">
+      <input type="number" id="fAmount" inputmode="decimal" placeholder="Amount" style="flex:1">
+    </div>
+    <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:12px">
+    <label class="payline">
+      <input type="checkbox" id="fPaid" checked>
+      <span id="paidLbl">Paid / received already (untick if still pending)</span>
+    </label>
+    <button class="savebtn" id="saveBtn" onclick="saveEntry()">Add entry</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const KEY="dailyLedgerV1";
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+let data={}, cur=new Date(), tab="daily", fType="expense", editId=null;
+
+try{ data=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ data={}; }
+
+const dkey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fmt=n=>"₹"+Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function persist(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(data));
+    const el=document.getElementById("saveState");
+    el.textContent="saved ✓";
+    setTimeout(()=>el.textContent="",1200);
+  }catch(e){ alert("Could not save. Storage may be full or blocked."); }
+}
+
+function setTab(t){
+  tab=t;
+  for(const x of ["Daily","Monthly","Dues"]){
+    document.getElementById("tab"+x).classList.toggle("on", x.toLowerCase()===t);
+    document.getElementById("view"+x).style.display = x.toLowerCase()===t ? "" : "none";
+  }
+  render();
+}
+
+function shiftDay(n){ cur.setDate(cur.getDate()+n); render(); }
+function shiftMonth(n){ cur.setMonth(cur.getMonth()+n); render(); }
+
+/* ---------- toggle paid: tick -> strikethrough + counted in balance ---------- */
+function togglePaid(dk,id){
+  const e=(data[dk]||[]).find(x=>x.id===id);
+  if(!e)return;
+  e.paid=!e.paid;
+  persist(); render();
+}
+function removeEntry(dk,id){
+  if(!confirm("Delete this entry?"))return;
+  data[dk]=(data[dk]||[]).filter(x=>x.id!==id);
+  if(!data[dk].length)delete data[dk];
+  persist(); render();
+}
+function editEntry(dk,id){
+  const e=(data[dk]||[]).find(x=>x.id===id);
+  if(!e)return;
+  editId=id;
+  cur=new Date(dk+"T00:00:00");
+  openForm();
+  document.getElementById("fName").value=e.name;
+  document.getElementById("fAmount").value=e.amount;
+  document.getElementById("fNote").value=e.note||"";
+  document.getElementById("fPaid").checked=!!e.paid;
+  setType(e.type);
+  document.getElementById("formTitle").textContent="Edit entry";
+  document.getElementById("saveBtn").textContent="Save changes";
+}
+
+/* ---------- form ---------- */
+function openForm(){
+  if(!editId){
+    document.getElementById("fName").value="";
+    document.getElementById("fAmount").value="";
+    document.getElementById("fNote").value="";
+    document.getElementById("fPaid").checked=true;
+    setType("expense");
+    document.getElementById("formTitle").textContent=
+      "New entry — "+String(cur.getDate()).padStart(2,"0")+" "+MONTHS[cur.getMonth()].slice(0,3);
+    document.getElementById("saveBtn").textContent="Add entry";
+  }
+  document.getElementById("sheetbg").classList.add("open");
+}
+function closeForm(){ editId=null; document.getElementById("sheetbg").classList.remove("open"); }
+function setType(t){
+  fType=t;
+  const inc=document.getElementById("pillInc"), exp=document.getElementById("pillExp");
+  inc.classList.toggle("on",t==="income"); exp.classList.toggle("on",t==="expense");
+  inc.textContent=(t==="income"?"✓ ":"")+"Income (Credit)";
+  exp.textContent=(t==="expense"?"✓ ":"")+"Expense (Debit)";
+  document.getElementById("paidLbl").textContent = t==="expense"
+    ? "Paid already (untick if you still have to pay)"
+    : "Received already (untick if you still have to collect)";
+}
+function saveEntry(){
+  const name=document.getElementById("fName").value.trim();
+  const amt=parseFloat(document.getElementById("fAmount").value);
+  if(!name||!amt||amt<=0){ alert("Enter a name and a valid amount."); return; }
+  const note=document.getElementById("fNote").value.trim();
+  const paid=document.getElementById("fPaid").checked;
+  const dk=dkey(cur);
+  data[dk]=data[dk]||[];
+  if(editId){
+    const e=data[dk].find(x=>x.id===editId);
+    if(e){ e.name=name;e.amount=amt;e.note=note;e.type=fType;e.paid=paid; }
+  }else{
+    data[dk].push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      name,amount:amt,note,type:fType,paid});
+  }
+  persist(); closeForm(); render();
+}
+function settle(dk,id){ // from Dues tab: mark paid on its own day
+  const e=(data[dk]||[]).find(x=>x.id===id);
+  if(e){ e.paid=true; persist(); render(); }
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(tab==="daily")renderDaily();
+  else if(tab==="monthly")renderMonthly();
+  else renderDues();
+  renderDuesBadge();
+}
+
+function renderDaily(){
+  const dk=dkey(cur), list=data[dk]||[];
+  // Balance counts ONLY ticked (paid) items
+  let inc=0,exp=0;
+  list.forEach(e=>{ if(e.paid){ e.type==="income"?inc+=e.amount:exp+=e.amount; } });
+  const bal=inc-exp;
+  let rows="";
+  list.forEach(e=>{
+    const pendTag = !e.paid ? `<span style="font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO PAY":"TO COLLECT"}</span>` : "";
+    rows+=`<div class="row ${e.paid?"paid":""}">
+      <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
+      <div class="name" onclick="editEntry('${dk}','${e.id}')">
+        ${esc(e.name)}${pendTag}
+        ${e.note?`<div class="note">${esc(e.note)}</div>`:""}
+      </div>
+      <div class="amt num ${e.paid?(e.type==="income"?"mint":""):"amber"}">
+        ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
+      </div>
+      <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
+    </div>`;
+  });
+  if(!list.length) rows=`<div class="empty">No entries for this day.<br>Tap <b class="mint">+</b> to add income or expense.<br><br>Tick ✓ when a payment is done — it gets crossed out and counted in the balance.</div>`;
+
+  document.getElementById("viewDaily").innerHTML=`
+    <div class="datebar">
+      <button class="nav" onclick="shiftDay(-1)">‹</button>
+      <div style="display:flex;align-items:center;gap:12px;flex:1">
+        <div class="bignum num">${String(cur.getDate()).padStart(2,"0")}</div>
+        <div>
+          <div style="font-size:15px;font-weight:600">${MONTHS[cur.getMonth()]}, ${cur.getFullYear()}</div>
+          <div style="font-size:13px;color:var(--dim)">${DAYS[cur.getDay()]}</div>
+        </div>
+      </div>
+      <div style="text-align:right;padding-right:4px">
+        <div style="font-size:12px;color:var(--dim)">Day balance</div>
+        <div class="num" style="font-size:16px;font-weight:700;color:${bal>=0?"var(--mint)":"var(--red)"}">${bal<0?"-":""}${fmt(Math.abs(bal))}</div>
+      </div>
+      <button class="nav" onclick="shiftDay(1)">›</button>
+    </div>
+    <div class="cards">
+      <div class="cardbox"><div class="lbl">Income (Credit)</div><div class="val mint num">${fmt(inc)}</div></div>
+      <div class="cardbox"><div class="lbl">Expense (Debit)</div><div class="val red num">${fmt(exp)}</div></div>
+    </div>
+    <div class="list">${rows}</div>`;
+}
+
+function renderMonthly(){
+  const y=cur.getFullYear(),m=cur.getMonth();
+  const rows=[];
+  for(const dk in data){
+    const dt=new Date(dk+"T00:00:00");
+    if(dt.getFullYear()===y&&dt.getMonth()===m){
+      let inc=0,exp=0;
+      data[dk].forEach(e=>{ if(e.paid){ e.type==="income"?inc+=e.amount:exp+=e.amount; } });
+      if(inc||exp)rows.push({dk,day:dt.getDate(),inc,exp});
+    }
+  }
+  rows.sort((a,b)=>a.day-b.day);
+  const mi=rows.reduce((s,r)=>s+r.inc,0), me=rows.reduce((s,r)=>s+r.exp,0);
+  let html=`
+    <div class="datebar">
+      <button class="nav" onclick="shiftMonth(-1)">‹</button>
+      <div style="flex:1;text-align:center;font-size:17px;font-weight:600">${MONTHS[m]} ${y}</div>
+      <button class="nav" onclick="shiftMonth(1)">›</button>
+    </div>
+    <div class="cards" style="margin-bottom:14px">
+      <div class="cardbox"><div class="lbl">Income</div><div class="val mint num">${fmt(mi)}</div></div>
+      <div class="cardbox"><div class="lbl">Expense</div><div class="val red num">${fmt(me)}</div></div>
+      <div class="cardbox"><div class="lbl">Net</div><div class="val num" style="color:${mi-me>=0?"var(--mint)":"var(--red)"}">${fmt(mi-me)}</div></div>
+    </div>`;
+  if(!rows.length)html+=`<div class="empty">No paid entries this month.</div>`;
+  rows.forEach(r=>{
+    html+=`<div class="mrow" onclick="cur=new Date('${r.dk}T00:00:00');setTab('daily')">
+      <div class="d num">${String(r.day).padStart(2,"0")}</div>
+      <div style="flex:1;font-size:13px" class="dim">
+        ${r.inc?`<span class="mint">+${r.inc.toLocaleString("en-IN")}</span> `:""}
+        ${r.exp?`<span class="red">−${r.exp.toLocaleString("en-IN")}</span>`:""}
+      </div>
+      <div class="num" style="font-weight:600;color:${r.inc-r.exp>=0?"var(--mint)":"var(--red)"}">${fmt(r.inc-r.exp)}</div>
+    </div>`;
+  });
+  document.getElementById("viewMonthly").innerHTML=html;
+}
+
+function collectPending(){
+  const groups={};
+  for(const dk in data)data[dk].forEach(e=>{
+    if(e.paid)return;
+    const k=e.name.trim().toLowerCase();
+    groups[k]=groups[k]||{name:e.name.trim(),toPay:0,toCollect:0,items:[]};
+    e.type==="expense"?groups[k].toPay+=e.amount:groups[k].toCollect+=e.amount;
+    groups[k].items.push({...e,dk});
+  });
+  return Object.values(groups).sort((a,b)=>(b.toPay+b.toCollect)-(a.toPay+a.toCollect));
+}
+
+function renderDuesBadge(){
+  const n=collectPending().length;
+  document.getElementById("tabDues").textContent="Dues"+(n?` (${n})`:"");
+}
+
+function renderDues(){
+  const groups=collectPending();
+  const tp=groups.reduce((s,g)=>s+g.toPay,0), tc=groups.reduce((s,g)=>s+g.toCollect,0);
+  let html=`
+    <div class="cards" style="margin:14px">
+      <div class="cardbox"><div class="lbl">You have to pay</div><div class="val red num">${fmt(tp)}</div></div>
+      <div class="cardbox"><div class="lbl">You have to collect</div><div class="val mint num">${fmt(tc)}</div></div>
+    </div>`;
+  if(!groups.length)html+=`<div class="empty">No pending dues.<br>Add an entry and untick "Paid already" to track money you owe or must collect.</div>`;
+  groups.forEach(g=>{
+    const net=g.toPay-g.toCollect;
+    html+=`<div class="duecard">
+      <div class="duehead"><span>${esc(g.name)}</span>
+        <span class="num" style="color:${net>=0?"var(--red)":"var(--mint)"}">${net>=0?"Pay "+fmt(net):"Collect "+fmt(-net)}</span>
+      </div>`;
+    g.items.forEach(it=>{
+      html+=`<div class="dueitem">
+        <div style="flex:1" class="dim">${it.dk}${it.note?" · "+esc(it.note):""}</div>
+        <div class="num" style="color:${it.type==="expense"?"var(--red)":"var(--mint)"};margin-right:6px">${it.type==="expense"?"−":"+"}${it.amount.toLocaleString("en-IN")}</div>
+        <button class="settle" onclick="settle('${it.dk}','${it.id}')">✓ Settled</button>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  document.getElementById("viewDues").innerHTML=html;
+}
+
+render();
+</script>
+</body>
+</html>
