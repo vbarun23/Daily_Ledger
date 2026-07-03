@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0D1310">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Daily Ledger</title>
 <style>
   :root{
@@ -75,7 +78,12 @@
 </head>
 <body>
 
-<header>Daily Ledger <small id="saveState"></small></header>
+<header style="display:flex;align-items:center;gap:8px">
+  <span style="flex:1">Daily Ledger <small id="saveState"></small></span>
+  <button onclick="exportData()" title="Backup" style="background:none;border:1px solid var(--line);color:var(--dim);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer">⬇ Backup</button>
+  <button onclick="document.getElementById('importFile').click()" title="Restore" style="background:none;border:1px solid var(--line);color:var(--dim);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer">⬆ Restore</button>
+  <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(this)">
+</header>
 
 <div class="tabs">
   <button id="tabDaily" class="on" onclick="setTab('daily')">Daily</button>
@@ -356,6 +364,45 @@ function renderDues(){
 }
 
 render();
+
+/* ---------- backup / restore ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  const d=new Date();
+  a.download="ledger-backup-"+dkey(d)+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const incoming=JSON.parse(reader.result);
+      if(typeof incoming!=="object"||Array.isArray(incoming))throw 0;
+      if(!confirm("Restore backup? This will merge with your current entries."))return;
+      for(const dk in incoming){
+        data[dk]=data[dk]||[];
+        const ids=new Set(data[dk].map(e=>e.id));
+        incoming[dk].forEach(e=>{ if(!ids.has(e.id))data[dk].push(e); });
+      }
+      persist(); render();
+      alert("Backup restored ✓");
+    }catch(e){ alert("This file is not a valid ledger backup."); }
+  };
+  reader.readAsText(file);
+  input.value="";
+}
+
+/* ---------- PWA service worker ---------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
