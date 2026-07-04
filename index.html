@@ -108,8 +108,13 @@
     </div>
     <div class="frow">
       <input type="text" id="fName" placeholder="Name (e.g. Kiran Materials)" style="flex:2">
-      <input type="number" id="fAmount" inputmode="decimal" placeholder="Amount" style="flex:1">
+      <div style="flex:1;display:flex;gap:6px;align-items:stretch">
+        <input type="text" id="fAmount" inputmode="tel" placeholder="Amount" style="flex:1;min-width:0" oninput="showCalc()">
+        <button type="button" onclick="addPlus()" title="Add another amount"
+          style="background:rgba(143,227,187,.13);border:1px solid var(--mint);color:var(--mint);border-radius:10px;padding:0 15px;font-size:21px;font-weight:600;cursor:pointer">+</button>
+      </div>
     </div>
+    <div id="calcHint" class="num" style="font-size:13px;color:var(--mint);min-height:18px;margin:-6px 2px 8px;text-align:right"></div>
     <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:12px">
     <label class="payline">
       <input type="checkbox" id="fPaid">
@@ -197,6 +202,7 @@ function openForm(){
   if(!editId){
     document.getElementById("fName").value="";
     document.getElementById("fAmount").value="";
+    document.getElementById("calcHint").textContent="";
     document.getElementById("fNote").value="";
     document.getElementById("fPaid").checked=false;
     setType("expense");
@@ -217,9 +223,40 @@ function setType(t){
     ? "Given already (untick if you still have to give)"
     : "Got already (untick if you still have to get)";
 }
+function parseAmount(str){
+  str=String(str).replace(/[,\s]/g,"");
+  if(!/^[0-9+\-.]*[0-9.]$/.test(str)||str==="")return NaN;
+  let total=0,sign=1,numbuf="";
+  for(const ch of str){
+    if(ch==="+"||ch==="-"){
+      if(numbuf===""){ if(ch==="-"&&total===0&&numbuf===""){sign=-sign;continue;} return NaN; }
+      total+=sign*parseFloat(numbuf); numbuf=""; sign=(ch==="-")?-1:1;
+    }else numbuf+=ch;
+  }
+  if(numbuf==="")return NaN;
+  total+=sign*parseFloat(numbuf);
+  return isNaN(total)?NaN:Math.round(total*100)/100;
+}
+function addPlus(){
+  const inp=document.getElementById("fAmount");
+  const v=inp.value.trim();
+  if(v===""||/[+\-]$/.test(v))return inp.focus();
+  inp.value=v+"+";
+  inp.focus();
+  inp.setSelectionRange(inp.value.length,inp.value.length);
+  showCalc();
+}
+function showCalc(){
+  const v=document.getElementById("fAmount").value;
+  const hint=document.getElementById("calcHint");
+  if(/[+\-]/.test(v.slice(1))){
+    const t=parseAmount(v);
+    hint.textContent=isNaN(t)?"":"= "+t.toLocaleString("en-IN",{minimumFractionDigits:2});
+  }else hint.textContent="";
+}
 function saveEntry(){
   const name=document.getElementById("fName").value.trim();
-  const amt=parseFloat(document.getElementById("fAmount").value);
+  const amt=parseAmount(document.getElementById("fAmount").value);
   if(!name||!amt||amt<=0){ alert("Enter a name and a valid amount."); return; }
   const note=document.getElementById("fNote").value.trim();
   const paid=document.getElementById("fPaid").checked;
