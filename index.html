@@ -102,8 +102,8 @@
     <div class="handle"></div>
     <h3 id="formTitle">New entry</h3>
     <div class="pills">
-      <button id="pillInc" class="inc" onclick="setType('income')">Income (Credit)</button>
-      <button id="pillExp" class="exp on" onclick="setType('expense')">✓ Expense (Debit)</button>
+      <button id="pillInc" class="inc" onclick="setType('income')">I Got (Credit)</button>
+      <button id="pillExp" class="exp on" onclick="setType('expense')">✓ I Gave (Debit)</button>
     </div>
     <div class="frow">
       <input type="text" id="fName" placeholder="Name (e.g. Kiran Materials)" style="flex:2">
@@ -112,7 +112,7 @@
     <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:12px">
     <label class="payline">
       <input type="checkbox" id="fPaid" checked>
-      <span id="paidLbl">Paid / received already (untick if still pending)</span>
+      <span id="paidLbl">Given / got already (untick if still pending)</span>
     </label>
     <button class="savebtn" id="saveBtn" onclick="saveEntry()">Add entry</button>
   </div>
@@ -199,11 +199,11 @@ function setType(t){
   fType=t;
   const inc=document.getElementById("pillInc"), exp=document.getElementById("pillExp");
   inc.classList.toggle("on",t==="income"); exp.classList.toggle("on",t==="expense");
-  inc.textContent=(t==="income"?"✓ ":"")+"Income (Credit)";
-  exp.textContent=(t==="expense"?"✓ ":"")+"Expense (Debit)";
+  inc.textContent=(t==="income"?"✓ ":"")+"I Got (Credit)";
+  exp.textContent=(t==="expense"?"✓ ":"")+"I Gave (Debit)";
   document.getElementById("paidLbl").textContent = t==="expense"
-    ? "Paid already (untick if you still have to pay)"
-    : "Received already (untick if you still have to collect)";
+    ? "Given already (untick if you still have to give)"
+    : "Got already (untick if you still have to get)";
 }
 function saveEntry(){
   const name=document.getElementById("fName").value.trim();
@@ -243,7 +243,7 @@ function renderDaily(){
   const bal=inc-exp;
   let rows="";
   list.forEach(e=>{
-    const pendTag = !e.paid ? `<span style="font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO PAY":"TO COLLECT"}</span>` : "";
+    const pendTag = !e.paid ? `<span style="font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
     rows+=`<div class="row ${e.paid?"paid":""}">
       <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
       <div class="name" onclick="editEntry('${dk}','${e.id}')">
@@ -256,7 +256,7 @@ function renderDaily(){
       <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
     </div>`;
   });
-  if(!list.length) rows=`<div class="empty">No entries for this day.<br>Tap <b class="mint">+</b> to add income or expense.<br><br>Tick ✓ when a payment is done — it gets crossed out and counted in the balance.</div>`;
+  if(!list.length) rows=`<div class="empty">No entries for this day.<br>Tap <b class="mint">+</b> to add what you got or gave.<br><br>Tick ✓ when a payment is done — it gets crossed out and counted in the balance.</div>`;
 
   document.getElementById("viewDaily").innerHTML=`
     <div class="datebar">
@@ -275,8 +275,8 @@ function renderDaily(){
       <button class="nav" onclick="shiftDay(1)">›</button>
     </div>
     <div class="cards">
-      <div class="cardbox"><div class="lbl">Income (Credit)</div><div class="val mint num">${fmt(inc)}</div></div>
-      <div class="cardbox"><div class="lbl">Expense (Debit)</div><div class="val red num">${fmt(exp)}</div></div>
+      <div class="cardbox"><div class="lbl">I Got (Credit)</div><div class="val mint num">${fmt(inc)}</div></div>
+      <div class="cardbox"><div class="lbl">I Gave (Debit)</div><div class="val red num">${fmt(exp)}</div></div>
     </div>
     <div class="list">${rows}</div>`;
 }
@@ -301,8 +301,8 @@ function renderMonthly(){
       <button class="nav" onclick="shiftMonth(1)">›</button>
     </div>
     <div class="cards" style="margin-bottom:14px">
-      <div class="cardbox"><div class="lbl">Income</div><div class="val mint num">${fmt(mi)}</div></div>
-      <div class="cardbox"><div class="lbl">Expense</div><div class="val red num">${fmt(me)}</div></div>
+      <div class="cardbox"><div class="lbl">I Got</div><div class="val mint num">${fmt(mi)}</div></div>
+      <div class="cardbox"><div class="lbl">I Gave</div><div class="val red num">${fmt(me)}</div></div>
       <div class="cardbox"><div class="lbl">Net</div><div class="val num" style="color:${mi-me>=0?"var(--mint)":"var(--red)"}">${fmt(mi-me)}</div></div>
     </div>`;
   if(!rows.length)html+=`<div class="empty">No paid entries this month.</div>`;
@@ -341,15 +341,15 @@ function renderDues(){
   const tp=groups.reduce((s,g)=>s+g.toPay,0), tc=groups.reduce((s,g)=>s+g.toCollect,0);
   let html=`
     <div class="cards" style="margin:14px">
-      <div class="cardbox"><div class="lbl">You have to pay</div><div class="val red num">${fmt(tp)}</div></div>
-      <div class="cardbox"><div class="lbl">You have to collect</div><div class="val mint num">${fmt(tc)}</div></div>
+      <div class="cardbox"><div class="lbl">I have to give</div><div class="val red num">${fmt(tp)}</div></div>
+      <div class="cardbox"><div class="lbl">I will get</div><div class="val mint num">${fmt(tc)}</div></div>
     </div>`;
-  if(!groups.length)html+=`<div class="empty">No pending dues.<br>Add an entry and untick "Paid already" to track money you owe or must collect.</div>`;
+  if(!groups.length)html+=`<div class="empty">No pending dues.<br>Add an entry and untick "Given/Got already" to track money you have to give or will get.</div>`;
   groups.forEach(g=>{
     const net=g.toPay-g.toCollect;
     html+=`<div class="duecard">
       <div class="duehead"><span>${esc(g.name)}</span>
-        <span class="num" style="color:${net>=0?"var(--red)":"var(--mint)"}">${net>=0?"Pay "+fmt(net):"Collect "+fmt(-net)}</span>
+        <span class="num" style="color:${net>=0?"var(--red)":"var(--mint)"}">${net>=0?"Give "+fmt(net):"Get "+fmt(-net)}</span>
       </div>`;
     g.items.forEach(it=>{
       html+=`<div class="dueitem">
