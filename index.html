@@ -263,14 +263,15 @@ function renderDaily(){
   list.forEach((e,idx)=>{
     if(viewMode==="split" && idx===splitIndex && splitIndex>0 && idx<list.length)
       rows+=`<div style="display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--dim);font-size:12px"><span style="flex:1;height:1px;background:var(--line)"></span>DONE ✓<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
-    const pendTag = !e.paid ? `<span style="font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
+    const pc = e.type==="expense" ? "var(--red)" : "var(--mint)";
+    const pendTag = !e.paid ? `<span style="font-size:11px;color:${pc};border:1px solid ${pc};border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
     rows+=`<div class="row ${e.paid?"paid":""}">
       <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
       <div class="name" onclick="editEntry('${dk}','${e.id}')">
         ${esc(e.name)}${pendTag}
         ${e.note?`<div class="note">${esc(e.note)}</div>`:""}
       </div>
-      <div class="amt num ${e.paid?(e.type==="income"?"mint":""):"amber"}">
+      <div class="amt num ${e.paid?(e.type==="income"?"mint":""):(e.type==="income"?"mint":"red")}">
         ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
       </div>
       <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
