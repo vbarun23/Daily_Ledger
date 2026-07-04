@@ -12,6 +12,7 @@
   :root{
     --bg:#0D1310; --card:#152019; --cardhi:#1C2A21; --line:#243328;
     --text:#E8F0E9; --dim:#8FA697; --mint:#8FE3BB; --red:#F0907F; --amber:#E8C878;
+    --mintlite:#C4F0DC; --redlite:#F8C4BA;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   body{margin:0;background:var(--bg);color:var(--text);
@@ -38,7 +39,7 @@
   .row .note{font-size:12.5px;color:var(--dim)}
   .row .amt{font-size:16.5px;font-weight:600}
   .row.paid .name,.row.paid .amt{text-decoration:line-through;text-decoration-thickness:2px;
-    text-decoration-color:var(--red);color:var(--dim)}
+    text-decoration-color:var(--redlite);color:var(--dim)}
   .chk{width:22px;height:22px;min-width:22px;border-radius:6px;border:1.5px solid var(--dim);
     background:none;color:#0B1410;font-size:15px;line-height:1;cursor:pointer;display:flex;
     align-items:center;justify-content:center;font-weight:900}
@@ -263,7 +264,7 @@ function renderDaily(){
   list.forEach((e,idx)=>{
     if(viewMode==="split" && idx===splitIndex && splitIndex>0 && idx<list.length)
       rows+=`<div style="display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--dim);font-size:12px"><span style="flex:1;height:1px;background:var(--line)"></span>DONE ✓<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
-    const pc = e.type==="expense" ? "var(--red)" : "var(--mint)";
+    const pc = e.type==="expense" ? "var(--redlite)" : "var(--mintlite)";
     const pendTag = !e.paid ? `<span style="font-size:11px;color:${pc};border:1px solid ${pc};border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
     rows+=`<div class="row ${e.paid?"paid":""}">
       <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
@@ -271,7 +272,7 @@ function renderDaily(){
         ${esc(e.name)}${pendTag}
         ${e.note?`<div class="note">${esc(e.note)}</div>`:""}
       </div>
-      <div class="amt num ${e.paid?(e.type==="income"?"mint":""):(e.type==="income"?"mint":"red")}">
+      <div class="amt num" style="color:${e.paid?(e.type==="income"?"var(--mintlite)":"inherit"):(e.type==="income"?"var(--mintlite)":"var(--redlite)")}">
         ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
       </div>
       <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
