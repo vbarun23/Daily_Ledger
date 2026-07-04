@@ -114,7 +114,7 @@
           style="background:rgba(143,227,187,.13);border:1px solid var(--mint);color:var(--mint);border-radius:10px;padding:0 15px;font-size:21px;font-weight:600;cursor:pointer">+</button>
       </div>
     </div>
-    <div id="calcHint" class="num" style="font-size:13px;color:var(--mint);min-height:18px;margin:-6px 2px 8px;text-align:right"></div>
+    <div id="calcHint" class="num" style="font-size:14px;color:var(--mint);min-height:18px;margin:-4px 2px 10px;text-align:right;line-height:1.5;word-break:break-word"></div>
     <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:12px">
     <label class="payline">
       <input type="checkbox" id="fPaid">
@@ -193,6 +193,7 @@ function editEntry(dk,id){
   document.getElementById("fNote").value=e.note||"";
   document.getElementById("fPaid").checked=!!e.paid;
   setType(e.type);
+  showCalc();
   document.getElementById("formTitle").textContent="Edit entry";
   document.getElementById("saveBtn").textContent="Save changes";
 }
@@ -250,8 +251,15 @@ function showCalc(){
   const v=document.getElementById("fAmount").value;
   const hint=document.getElementById("calcHint");
   if(/[+\-]/.test(v.slice(1))){
-    const t=parseAmount(v);
-    hint.textContent=isNaN(t)?"":"= "+t.toLocaleString("en-IN",{minimumFractionDigits:2});
+    const t=parseAmount(v.replace(/[+\-]$/,""));
+    const parts=v.replace(/[,\s]/g,"").split(/(?=[+\-])/)
+      .filter(p=>p!==""&&p!=="+"&&p!=="-")
+      .map(p=>{
+        const sign=p[0]==="-"?"− ":p[0]==="+"?"+ ":"";
+        const n=parseFloat(p.replace(/[+\-]/,""));
+        return isNaN(n)?"":sign+n.toLocaleString("en-IN");
+      }).filter(Boolean).join("  ");
+    hint.innerHTML=isNaN(t)?"":`<span style="color:var(--dim)">${parts}</span>&nbsp; = <b>${t.toLocaleString("en-IN",{minimumFractionDigits:2})}</b>`;
   }else hint.textContent="";
 }
 function saveEntry(){
