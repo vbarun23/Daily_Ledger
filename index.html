@@ -52,21 +52,21 @@
   .sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
     align-items:flex-end;justify-content:center;z-index:10}
   .sheetbg.open{display:flex}
-  .sheet{width:100%;max-width:460px;background:var(--cardhi);border-radius:22px 22px 0 0;padding:16px 18px 28px}
-  .handle{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
-  .sheet h3{text-align:center;font-size:15px;margin:0 0 14px;font-weight:600}
-  .pills{display:flex;gap:10px;margin-bottom:14px}
-  .pills button{flex:1;padding:11px 0;border-radius:24px;border:1px solid var(--line);
-    background:none;color:var(--dim);font-size:14px;font-weight:600;cursor:pointer}
+  .sheet{width:100%;max-width:460px;background:var(--cardhi);border-radius:20px 20px 0 0;padding:12px 14px 20px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 8px}
+  .sheet h3{text-align:center;font-size:13.5px;margin:0 0 10px;font-weight:600}
+  .pills{display:flex;gap:8px;margin-bottom:10px}
+  .pills button{flex:1;padding:8px 0;border-radius:20px;border:1px solid var(--line);
+    background:none;color:var(--dim);font-size:12.5px;font-weight:600;cursor:pointer}
   .pills button.inc.on{border-color:var(--mint);background:rgba(143,227,187,.13);color:var(--mint)}
   .pills button.exp.on{border-color:var(--red);background:rgba(240,144,127,.13);color:var(--red)}
-  .frow{display:flex;gap:10px;margin-bottom:12px}
+  .frow{display:flex;gap:8px;margin-bottom:9px}
   input[type=text],input[type=number]{width:100%;background:var(--bg);border:1px solid var(--line);
-    border-radius:10px;padding:12px 14px;color:var(--text);font-size:16px;outline:none}
-  .payline{display:flex;align-items:center;gap:10px;margin:4px 0 18px;font-size:14.5px;color:var(--dim)}
-  .payline input{width:19px;height:19px;accent-color:var(--mint)}
-  .savebtn{width:100%;padding:14px 0;border-radius:12px;border:none;background:var(--mint);
-    color:#0B1410;font-size:16.5px;font-weight:700;cursor:pointer}
+    border-radius:9px;padding:9px 11px;color:var(--text);font-size:14.5px;outline:none}
+  .payline{display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:12.5px;color:var(--dim)}
+  .payline input{width:17px;height:17px;accent-color:var(--mint)}
+  .savebtn{width:100%;padding:11px 0;border-radius:10px;border:none;background:var(--mint);
+    color:#0B1410;font-size:14.5px;font-weight:700;cursor:pointer}
   .savebtn:disabled{background:var(--line);color:var(--dim)}
   .duecard{margin:0 14px 12px;background:var(--card);border-radius:14px;padding:12px 14px}
   .duehead{display:flex;justify-content:space-between;margin-bottom:4px;font-weight:600;font-size:16.5px}
@@ -107,15 +107,15 @@
       <button id="pillExp" class="exp on" onclick="setType('expense')">✓ To Give (Debit)</button>
     </div>
     <div class="frow">
-      <input type="text" id="fName" placeholder="Name (e.g. Kiran Materials)" style="flex:2">
-      <div style="flex:1;display:flex;gap:6px;align-items:stretch">
+      <input type="text" id="fName" placeholder="Name" style="flex:1;min-width:0">
+      <div style="flex:1.25;display:flex;gap:5px;align-items:stretch">
         <input type="text" id="fAmount" inputmode="tel" placeholder="Amount" style="flex:1;min-width:0" oninput="showCalc()">
         <button type="button" onclick="addPlus()" title="Add another amount"
-          style="background:rgba(143,227,187,.13);border:1px solid var(--mint);color:var(--mint);border-radius:10px;padding:0 15px;font-size:21px;font-weight:600;cursor:pointer">+</button>
+          style="background:rgba(143,227,187,.13);border:1px solid var(--mint);color:var(--mint);border-radius:8px;padding:0 10px;font-size:16px;font-weight:600;cursor:pointer">+</button>
       </div>
     </div>
-    <div id="calcHint" class="num" style="font-size:14px;color:var(--mint);min-height:18px;margin:-4px 2px 10px;text-align:right;line-height:1.5;word-break:break-word"></div>
-    <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:12px">
+    <div id="calcHint" class="num" style="font-size:12.5px;color:var(--mint);min-height:16px;margin:-3px 2px 8px;text-align:right;line-height:1.45;word-break:break-word"></div>
+    <input type="text" id="fNote" placeholder="Description (optional)" style="margin-bottom:9px">
     <label class="payline">
       <input type="checkbox" id="fPaid">
       <span id="paidLbl">Given / got already (untick if still pending)</span>
