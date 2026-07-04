@@ -38,9 +38,6 @@
   .row .name{font-size:16.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .row .note{font-size:12.5px;color:var(--dim)}
   .row .amt{font-size:16.5px;font-weight:600}
-  .drag{touch-action:none;-webkit-user-select:none;user-select:none;color:var(--dim);
-    font-size:17px;line-height:1;padding:8px 9px 8px 2px;cursor:grab;flex:none}
-  .row.dragging{background:var(--cardhi);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.55);border-bottom-color:transparent}
   .row.paid .name,.row.paid .amt{text-decoration:line-through;text-decoration-thickness:2px;
     text-decoration-color:var(--redlite);color:var(--dim)}
   .chk{width:22px;height:22px;min-width:22px;border-radius:6px;border:1.5px solid var(--dim);
@@ -124,6 +121,7 @@
       <span id="paidLbl">Given / got already (untick if still pending)</span>
     </label>
     <button class="savebtn" id="saveBtn" onclick="saveEntry()">Add entry</button>
+    <button id="deleteBtn" onclick="deleteFromSheet()" style="display:none;width:100%;margin-top:8px;padding:10px 0;border-radius:10px;border:1px solid var(--red);background:rgba(240,144,127,.1);color:var(--red);font-size:13.5px;font-weight:600;cursor:pointer">Delete this entry</button>
   </div>
 </div>
 
@@ -138,60 +136,7 @@ let viewMode=localStorage.getItem("ledgerView")||"normal";
 let sortOn=localStorage.getItem("ledgerSortOn")==="1";
 function setView(v){ viewMode=v; try{localStorage.setItem("ledgerView",v);}catch(e){} render(); }
 function toggleSortOn(){ sortOn=!sortOn; if(sortOn&&sortMode==="entry")sortMode="high"; try{localStorage.setItem("ledgerSortOn",sortOn?"1":"0");}catch(e){} render(); }
-/* ---------- long-press drag to reorder ---------- */
-let dragId=null,dragDk=null,suppressTap=false,pressTimer=null;
-function handleStart(ev,dk,id){
-  if(sortOn)return;
-  ev.preventDefault();
-  beginDrag(dk,id);
-}
-function pressStart(ev,dk,id){
-  if(sortOn)return; // manual order only when sort filter is off
-  const t=ev.touches?ev.touches[0]:ev;
-  const sx=t.clientX,sy=t.clientY;
-  const cancelMove=(e2)=>{const t2=e2.touches?e2.touches[0]:e2;
-    if(Math.abs(t2.clientX-sx)>10||Math.abs(t2.clientY-sy)>10)cancel();};
-  const cancel=()=>{clearTimeout(pressTimer);
-    document.removeEventListener("touchmove",cancelMove);
-    document.removeEventListener("touchend",cancel);};
-  document.addEventListener("touchmove",cancelMove,{passive:true});
-  document.addEventListener("touchend",cancel);
-  pressTimer=setTimeout(()=>{cancel();beginDrag(dk,id);},420);
-}
-function beginDrag(dk,id){
-  dragId=id;dragDk=dk;suppressTap=true;
-  if(navigator.vibrate)try{navigator.vibrate(35);}catch(e){}
-  document.body.style.overflow="hidden";
-  render();
-  document.addEventListener("touchmove",dragMove,{passive:false});
-  document.addEventListener("touchend",dragEnd);
-}
-function dragMove(e){
-  e.preventDefault();
-  const y=e.touches[0].clientY;
-  const rowEls=[...document.querySelectorAll(".list .row")];
-  if(!rowEls.length)return;
-  const ids=rowEls.map(r=>r.dataset.id);
-  const from=ids.indexOf(dragId);
-  let to=from;
-  rowEls.forEach((r,i)=>{const b=r.getBoundingClientRect();if(y>b.top&&y<b.bottom)to=i;});
-  const fb=rowEls[0].getBoundingClientRect(),lb=rowEls[rowEls.length-1].getBoundingClientRect();
-  if(y<fb.top)to=0; if(y>lb.bottom)to=rowEls.length-1;
-  if(to!==from&&from>=0){
-    ids.splice(from,1);ids.splice(to,0,dragId);
-    const map={};(data[dragDk]||[]).forEach(en=>map[en.id]=en);
-    data[dragDk]=ids.map(i2=>map[i2]).filter(Boolean);
-    render();
-  }
-}
-function dragEnd(){
-  document.removeEventListener("touchmove",dragMove);
-  document.removeEventListener("touchend",dragEnd);
-  document.body.style.overflow="";
-  dragId=null;dragDk=null;
-  persist();render();
-  setTimeout(()=>suppressTap=false,150);
-}
+
 function setSort(v){ sortMode=v; try{localStorage.setItem("ledgerSort",v);}catch(e){} render(); }
 function sortList(list){
   const a=[...list];
@@ -242,11 +187,19 @@ function removeEntry(dk,id){
   if(!data[dk].length)delete data[dk];
   persist(); render();
 }
+let editDk=null;
+function deleteFromSheet(){
+  if(!editId)return;
+  if(!confirm("Delete this entry?"))return;
+  const dk=editDk;
+  data[dk]=(data[dk]||[]).filter(x=>x.id!==editId);
+  if(!data[dk].length)delete data[dk];
+  persist(); closeForm(); render();
+}
 function editEntry(dk,id){
-  if(suppressTap)return;
   const e=(data[dk]||[]).find(x=>x.id===id);
   if(!e)return;
-  editId=id;
+  editId=id; editDk=dk;
   cur=new Date(dk+"T00:00:00");
   openForm();
   document.getElementById("fName").value=e.name;
@@ -257,6 +210,7 @@ function editEntry(dk,id){
   showCalc();
   document.getElementById("formTitle").textContent="Edit entry";
   document.getElementById("saveBtn").textContent="Save changes";
+  document.getElementById("deleteBtn").style.display="block";
 }
 
 /* ---------- form ---------- */
@@ -271,6 +225,7 @@ function openForm(){
     document.getElementById("formTitle").textContent=
       "New entry — "+String(cur.getDate()).padStart(2,"0")+" "+MONTHS[cur.getMonth()].slice(0,3);
     document.getElementById("saveBtn").textContent="Add entry";
+    document.getElementById("deleteBtn").style.display="none";
   }
   document.getElementById("sheetbg").classList.add("open");
 }
@@ -372,8 +327,7 @@ function renderDaily(){
       rows+=`<div style="display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--dim);font-size:12px"><span style="flex:1;height:1px;background:var(--line)"></span>DONE ✓<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
     const pc = e.type==="expense" ? "var(--redlite)" : "var(--mintlite)";
     const pendTag = !e.paid ? `<span style="font-size:11px;color:${pc};border:1px solid ${pc};border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
-    rows+=`<div class="row ${e.paid?"paid":""} ${e.id===dragId?"dragging":""}" data-id="${e.id}">
-      ${!sortOn?`<span class="drag" ontouchstart="handleStart(event,'${dk}','${e.id}')">≡</span>`:""}
+    rows+=`<div class="row ${e.paid?"paid":""}">
       <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
       <div class="name" onclick="editEntry('${dk}','${e.id}')">
         ${esc(e.name)}${pendTag}
@@ -382,7 +336,6 @@ function renderDaily(){
       <div class="amt num" style="color:${e.paid?(e.type==="income"?"var(--mintlite)":"inherit"):(e.type==="income"?"var(--mintlite)":"var(--redlite)")}">
         ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
       </div>
-      <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
     </div>`;
   });
   if(!list.length) rows=`<div class="empty">No entries for this day.<br>Tap <b class="mint">+</b> to add what you got or gave.<br><br>Tick ✓ when a payment is done — it gets crossed out and counted in the balance.</div>`;
