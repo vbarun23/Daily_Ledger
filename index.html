@@ -132,10 +132,21 @@ const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturda
 let data={}, cur=new Date(), tab="daily", fType="expense", editId=null;
 let sortMode=localStorage.getItem("ledgerSort")||"entry";
 let viewMode=localStorage.getItem("ledgerView")||"normal";
+let sortOn=localStorage.getItem("ledgerSortOn")==="1";
 function setView(v){ viewMode=v; try{localStorage.setItem("ledgerView",v);}catch(e){} render(); }
+function toggleSortOn(){ sortOn=!sortOn; if(sortOn&&sortMode==="entry")sortMode="high"; try{localStorage.setItem("ledgerSortOn",sortOn?"1":"0");}catch(e){} render(); }
+function moveEntry(dk,id,dir){
+  const arr=data[dk]||[];
+  const i=arr.findIndex(e=>e.id===id);
+  const j=i+dir;
+  if(i<0||j<0||j>=arr.length)return;
+  [arr[i],arr[j]]=[arr[j],arr[i]];
+  persist(); render();
+}
 function setSort(v){ sortMode=v; try{localStorage.setItem("ledgerSort",v);}catch(e){} render(); }
 function sortList(list){
   const a=[...list];
+  if(!sortOn) return a;
   if(sortMode==="name") a.sort((x,y)=>x.name.localeCompare(y.name,undefined,{sensitivity:"base"}));
   else if(sortMode==="high") a.sort((x,y)=>y.amount-x.amount);
   else if(sortMode==="low") a.sort((x,y)=>x.amount-y.amount);
@@ -320,6 +331,10 @@ function renderDaily(){
       <div class="amt num" style="color:${e.paid?(e.type==="income"?"var(--mintlite)":"inherit"):(e.type==="income"?"var(--mintlite)":"var(--redlite)")}">
         ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
       </div>
+      ${(!sortOn&&viewMode==="normal")?`<span style="display:flex;flex-direction:column;gap:2px;margin-left:4px">
+        <button onclick="moveEntry('${dk}','${e.id}',-1)" style="background:none;border:none;color:var(--dim);font-size:11px;line-height:1;padding:2px 4px;cursor:pointer">▲</button>
+        <button onclick="moveEntry('${dk}','${e.id}',1)" style="background:none;border:none;color:var(--dim);font-size:11px;line-height:1;padding:2px 4px;cursor:pointer">▼</button>
+      </span>`:""}
       <button class="del" onclick="removeEntry('${dk}','${e.id}')">✕</button>
     </div>`;
   });
@@ -346,17 +361,19 @@ function renderDaily(){
       <div class="cardbox"><div class="lbl">I Gave (Debit)</div><div class="val red num">${fmt(exp)}</div></div>
     </div>
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:12px 14px 0">
-      <button onclick="setView(viewMode==='normal'?'split':'normal')" title="${viewMode==='normal'?'All together — tap for Pending on top':'Pending on top — tap for All together'}"
+      <button onclick="setView(viewMode==='normal'?'split':'normal')" title="Toggle pending-on-top view"
         style="background:${viewMode==='split'?'rgba(143,227,187,.13)':'var(--card)'};color:${viewMode==='split'?'var(--mint)':'var(--dim)'};border:1px solid ${viewMode==='split'?'var(--mint)':'var(--line)'};border-radius:9px;padding:6px 11px;font-size:15px;line-height:1;cursor:pointer">
         ${viewMode==='split'?'⇅':'☰'}
       </button>
-      <span style="font-size:12.5px;color:var(--dim)">Sort:</span>
-      <select onchange="setSort(this.value)" style="background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13.5px;outline:none">
-        <option value="entry" ${sortMode==="entry"?"selected":""}>Entry order</option>
+      <button onclick="toggleSortOn()" title="Sort filter on/off"
+        style="background:${sortOn?'rgba(143,227,187,.13)':'var(--card)'};color:${sortOn?'var(--mint)':'var(--dim)'};border:1px solid ${sortOn?'var(--mint)':'var(--line)'};border-radius:9px;padding:6px 11px;font-size:14px;line-height:1;cursor:pointer">
+        ⏷⏶
+      </button>
+      ${sortOn?`<select onchange="setSort(this.value)" style="background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:13.5px;outline:none">
         <option value="name" ${sortMode==="name"?"selected":""}>Name A–Z</option>
         <option value="high" ${sortMode==="high"?"selected":""}>Amount high → low</option>
         <option value="low" ${sortMode==="low"?"selected":""}>Amount low → high</option>
-      </select>
+      </select>`:""}
     </div>
     <div class="list">${rows}</div>`;
 }
