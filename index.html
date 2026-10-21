@@ -45,6 +45,13 @@
     align-items:center;justify-content:center;font-weight:900}
   .chk.done{background:var(--mint);border-color:var(--mint)}
   .del{background:none;border:none;color:var(--dim);font-size:17px;cursor:pointer;padding:4px 0 4px 6px}
+  .grp{margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(21,32,25,.55)}
+  .grphead{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 12px;background:var(--card);cursor:pointer}
+  .grpedit{background:none;border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:4px 8px;font-size:13px;cursor:pointer}
+  .grpbody{padding:0 10px}
+  .grpbody .row:last-child{border-bottom:none}
+  .gitem{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  .gitem input{width:18px;height:18px;accent-color:var(--mint)}
   .empty{text-align:center;color:var(--dim);padding:44px 24px;font-size:14.5px;line-height:1.6}
   .fab{position:fixed;bottom:26px;right:max(20px,calc(50% - 210px));width:60px;height:60px;
     border-radius:18px;background:var(--mint);color:#0B1410;font-size:32px;border:none;
@@ -122,6 +129,18 @@
     </label>
     <button class="savebtn" id="saveBtn" onclick="saveEntry()">Add entry</button>
     <button id="deleteBtn" onclick="deleteFromSheet()" style="display:none;width:100%;margin-top:8px;padding:10px 0;border-radius:10px;border:1px solid var(--red);background:rgba(240,144,127,.1);color:var(--red);font-size:13.5px;font-weight:600;cursor:pointer">Delete this entry</button>
+  </div>
+</div>
+
+<div class="sheetbg" id="gsheetbg" onclick="if(event.target===this)closeGroupSheet()">
+  <div class="sheet" style="max-height:85vh;display:flex;flex-direction:column">
+    <div class="handle"></div>
+    <h3 id="gTitle">New group</h3>
+    <input type="text" id="gName" placeholder="Group name (e.g. Site 1, Materials)" style="margin-bottom:8px">
+    <div style="font-size:12px;color:var(--dim);margin:2px 2px 4px">Tick the entries in this group:</div>
+    <div id="gItems" style="overflow-y:auto;flex:1;min-height:60px;margin-bottom:10px"></div>
+    <button class="savebtn" onclick="saveGroup()">Save group</button>
+    <button id="gUngroup" onclick="ungroupAll()" style="display:none;width:100%;margin-top:8px;padding:10px 0;border-radius:10px;border:1px solid var(--red);background:rgba(240,144,127,.1);color:var(--red);font-size:13.5px;font-weight:600;cursor:pointer">Remove group (entries stay)</button>
   </div>
 </div>
 
@@ -308,26 +327,62 @@ function render(){
   renderDuesBadge();
 }
 
+/* ---------- groups ---------- */
+const collapsed={};
+let gEditing=null;
+function groupNames(dk){
+  const seen=[];(data[dk]||[]).forEach(e=>{ if(e.group&&!seen.includes(e.group))seen.push(e.group); });
+  return seen;
+}
+function toggleGroup(dk,g){ const k=dk+"|"+g; collapsed[k]=!collapsed[k]; render(); }
+function openGroupSheet(g){
+  gEditing=g;
+  const dk=dkey(cur), list=data[dk]||[];
+  document.getElementById("gTitle").textContent=g?"Edit group":"New group";
+  document.getElementById("gName").value=g||"";
+  document.getElementById("gUngroup").style.display=g?"block":"none";
+  document.getElementById("gItems").innerHTML=list.map(e=>{
+    const inThis=g&&e.group===g, other=e.group&&e.group!==g;
+    return `<label class="gitem">
+      <input type="checkbox" value="${e.id}" ${inThis?"checked":""}>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}${other?` <span class="dim" style="font-size:11px">(${esc(e.group)})</span>`:""}</span>
+      <span class="num" style="color:${e.type==="expense"?"var(--redlite)":"var(--mintlite)"}">${e.amount.toLocaleString("en-IN")}</span>
+    </label>`;
+  }).join("")||`<div class="dim" style="font-size:13px;padding:10px 2px">No entries on this day yet.</div>`;
+  document.getElementById("gsheetbg").classList.add("open");
+}
+function closeGroupSheet(){ gEditing=null; document.getElementById("gsheetbg").classList.remove("open"); }
+function saveGroup(){
+  const name=document.getElementById("gName").value.trim();
+  if(!name){ alert("Enter a group name."); return; }
+  const dk=dkey(cur), list=data[dk]||[];
+  const picked=new Set([...document.querySelectorAll("#gItems input:checked")].map(i=>i.value));
+  if(!picked.size){ alert("Tick at least one entry for the group."); return; }
+  list.forEach(e=>{
+    if(picked.has(e.id)) e.group=name;
+    else if(gEditing&&e.group===gEditing) delete e.group;
+  });
+  persist(); closeGroupSheet(); render();
+}
+function ungroupAll(){
+  if(!gEditing)return;
+  if(!confirm("Remove this group? The entries will stay in the list."))return;
+  (data[dkey(cur)]||[]).forEach(e=>{ if(e.group===gEditing) delete e.group; });
+  persist(); closeGroupSheet(); render();
+}
+
 function renderDaily(){
   const dk=dkey(cur);
-  let list=sortList(data[dk]||[]);
-  let splitIndex=-1;
-  if(viewMode==="split"){
-    const pending=list.filter(e=>!e.paid), done=list.filter(e=>e.paid);
-    splitIndex=pending.length;
-    list=[...pending,...done];
-  }
+  const all=data[dk]||[];
   // Balance counts ONLY ticked (paid) items
   let inc=0,exp=0;
-  list.forEach(e=>{ if(e.paid){ e.type==="income"?inc+=e.amount:exp+=e.amount; } });
+  all.forEach(e=>{ if(e.paid){ e.type==="income"?inc+=e.amount:exp+=e.amount; } });
   const bal=inc-exp;
-  let rows="";
-  list.forEach((e,idx)=>{
-    if(viewMode==="split" && idx===splitIndex && splitIndex>0 && idx<list.length)
-      rows+=`<div style="display:flex;align-items:center;gap:10px;margin:14px 0 2px;color:var(--dim);font-size:12px"><span style="flex:1;height:1px;background:var(--line)"></span>DONE ✓<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
+  const list=all;
+  const rowHtml=(e)=>{
     const pc = e.type==="expense" ? "var(--redlite)" : "var(--mintlite)";
     const pendTag = !e.paid ? `<span style="font-size:11px;color:${pc};border:1px solid ${pc};border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle">${e.type==="expense"?"TO GIVE":"TO GET"}</span>` : "";
-    rows+=`<div class="row ${e.paid?"paid":""}">
+    return `<div class="row ${e.paid?"paid":""}">
       <button class="chk ${e.paid?"done":""}" onclick="togglePaid('${dk}','${e.id}')" aria-label="Mark paid">${e.paid?"✓":""}</button>
       <div class="name" onclick="editEntry('${dk}','${e.id}')">
         ${esc(e.name)}${pendTag}
@@ -336,6 +391,40 @@ function renderDaily(){
       <div class="amt num" style="color:${e.paid?(e.type==="income"?"var(--mintlite)":"inherit"):(e.type==="income"?"var(--mintlite)":"var(--redlite)")}">
         ${e.type==="income"?"+":""}${e.amount.toLocaleString("en-IN",{minimumFractionDigits:2})}
       </div>
+    </div>`;
+  };
+  const section=(items)=>{
+    let arr=sortList(items), out="";
+    if(viewMode==="split"){
+      const p=arr.filter(e=>!e.paid), d=arr.filter(e=>e.paid);
+      out+=p.map(rowHtml).join("");
+      if(p.length&&d.length) out+=`<div style="display:flex;align-items:center;gap:10px;margin:10px 0 2px;color:var(--dim);font-size:11.5px"><span style="flex:1;height:1px;background:var(--line)"></span>DONE ✓<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
+      out+=d.map(rowHtml).join("");
+    } else out+=arr.map(rowHtml).join("");
+    return out;
+  };
+  let rows="";
+  const ungrouped=all.filter(e=>!e.group);
+  rows+=section(ungrouped);
+  groupNames(dk).forEach(g=>{
+    const items=all.filter(e=>e.group===g);
+    let give=0,get=0;
+    items.forEach(e=>{ e.type==="expense"?give+=e.amount:get+=e.amount; });
+    const open=!collapsed[dk+"|"+g];
+    const ge=esc(g).replace(/'/g,"&#39;");
+    rows+=`<div class="grp">
+      <div class="grphead" onclick="toggleGroup('${dk}',decodeURIComponent('${encodeURIComponent(g)}'))">
+        <span class="dim" style="font-size:11px;width:12px">${open?"▾":"▸"}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          <b>${esc(g)}</b> <span class="dim" style="font-size:12px">· ${items.length}</span>
+        </span>
+        <span class="num" style="text-align:right;font-size:13px;line-height:1.35">
+          ${give?`<div style="color:var(--redlite)">Give ${fmt(give)}</div>`:""}
+          ${get?`<div style="color:var(--mintlite)">Get ${fmt(get)}</div>`:""}
+        </span>
+        <button class="grpedit" onclick="event.stopPropagation();openGroupSheet(decodeURIComponent('${encodeURIComponent(g)}'))" aria-label="Edit group">✎</button>
+      </div>
+      ${open?`<div class="grpbody">${section(items)}</div>`:""}
     </div>`;
   });
   if(!list.length) rows=`<div class="empty">No entries for this day.<br>Tap <b class="mint">+</b> to add what you got or gave.<br><br>Tick ✓ when a payment is done — it gets crossed out and counted in the balance.</div>`;
@@ -361,6 +450,7 @@ function renderDaily(){
       <div class="cardbox"><div class="lbl">I Gave (Debit)</div><div class="val red num">${fmt(exp)}</div></div>
     </div>
     <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:12px 14px 0">
+      ${all.length?`<button onclick="openGroupSheet(null)" title="New group" style="margin-right:auto;background:var(--card);color:var(--dim);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:13px;line-height:1;cursor:pointer">＋ Group</button>`:""}
       <button onclick="setView(viewMode==='normal'?'split':'normal')" title="Toggle pending-on-top view"
         style="background:${viewMode==='split'?'rgba(143,227,187,.13)':'var(--card)'};color:${viewMode==='split'?'var(--mint)':'var(--dim)'};border:1px solid ${viewMode==='split'?'var(--mint)':'var(--line)'};border-radius:9px;padding:6px 11px;font-size:15px;line-height:1;cursor:pointer">
         ${viewMode==='split'?'⇅':'☰'}
